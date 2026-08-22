@@ -276,56 +276,103 @@ function seedState(){
   };
 }
 
-/* ============== FIREBASE STORAGE ============== */
+/* ============== SUPABASE STORAGE ============== */
 async function loadState(){
-  try{
-    await window.firebaseReady;
-
-    const { dataRef, getDoc } = window.firebaseArchive;
-    const snapshot = await getDoc(dataRef);
-
-    if(snapshot.exists() && snapshot.data().state){
-      state = snapshot.data().state;
-    } else {
-      state = seedState();
-      await saveState();
-    }
-
-    if(!state || !Array.isArray(state.folders)){
-      state = seedState();
-      await saveState();
-    }
-
-    if(state.folders.length){
-      selectedFolderId = state.folders[0].id;
-    }
-
-  }catch(e){
-    console.error('Gagal memuat data dari Firebase:', e);
+  if(!window.supabaseConfigured || !window.supabaseClient){
     state = seedState();
-    showToast('Gagal memuat data dari Firebase. Periksa Firestore Rules dan koneksi.');
+    showToast('Masukkan URL dan Anon Key Supabase terlebih dahulu.');
+  } else {
+    try{
+      const { data: folders, error: folderError } = await window.supabaseClient
+        .from('folders')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if(folderError) throw folderError;
+
+      const { data: notes, error: noteError } = await window.supabaseClient
+        .from('notes')
+        .select('*')
+        .order('added_at', { ascending: true });
+
+      if(noteError) throw noteError;
+
+      state = {
+        folders: (folders || []).map(f => ({
+          id: f.id,
+          name: f.name,
+          code: f.code,
+          color: f.color || 'purple',
+          notes: (notes || [])
+            .filter(n => n.folder_id === f.id)
+            .map(n => ({
+              id: n.id,
+              title: n.title,
+              code: n.code,
+              addedAt: n.added_at,
+              html: n.html
+            }))
+        }))
+      };
+
+      if(!state.folders.length){
+        state = seedState();
+        await saveState();
+      }
+    }catch(e){
+      console.error('Gagal memuat dari Supabase:', e);
+      state = seedState();
+      showToast('Gagal memuat Supabase. Periksa URL, key, tabel, dan RLS.');
+    }
   }
 
+  if(state.folders.length) selectedFolderId = state.folders[0].id;
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = '';
   render();
 }
 
 async function saveState(){
-  try{
-    await window.firebaseReady;
+  if(!window.supabaseConfigured || !window.supabaseClient){
+    showToast('Supabase belum dikonfigurasi.');
+    return false;
+  }
 
-    const { dataRef, setDoc } = window.firebaseArchive;
-    await setDoc(dataRef, {
-      state: state,
-      updatedAt: new Date().toISOString()
-    });
+  try{
+    const folders = state.folders.map(f => ({
+      id: f.id,
+      name: f.name,
+      code: f.code,
+      color: f.color || 'purple'
+    }));
+
+    const notes = state.folders.flatMap(f =>
+      f.notes.map(n => ({
+        id: n.id,
+        folder_id: f.id,
+        title: n.title,
+        code: n.code,
+        html: n.html,
+        added_at: n.addedAt || new Date().toISOString()
+      }))
+    );
+
+    const { error: folderError } = await window.supabaseClient
+      .from('folders')
+      .upsert(folders, { onConflict: 'id' });
+
+    if(folderError) throw folderError;
+
+    const { error: noteError } = await window.supabaseClient
+      .from('notes')
+      .upsert(notes, { onConflict: 'id' });
+
+    if(noteError) throw noteError;
 
     return true;
-
   }catch(e){
-    console.error('Gagal menyimpan ke Firebase:', e);
-    showToast('Gagal menyimpan perubahan. Periksa Firestore Rules.');
+    console.error('Gagal menyimpan ke Supabase:', e);
+    showToast('Gagal menyimpan perubahan. Periksa Supabase dan RLS.');
     return false;
   }
 }
