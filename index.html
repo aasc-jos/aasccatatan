@@ -179,14 +179,14 @@ iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
 
 <div id="loading" class="loading">
   <div class="stamp-spin"></div>
-  <div>Membuka rak arsip…</div>
+  <div>Membuka rak ctt…</div>
 </div>
 
 <div class="app" id="app" style="display:none;">
   <aside class="rail">
     <div class="brand">
       <div class="stamp">AC</div>
-      <div class="txt"><b>Arsip Catatan</b><span>arsip catatan · farmasi</span></div>
+      <div class="txt"><b>Catatan Mid-Lengkap</b><span>CTT Wong Sukses · farmasi</span></div>
     </div>
     <div class="rail-search">
       <span class="ic">⌕</span>
@@ -370,7 +370,7 @@ function render(){
   }
 
   if(!state.folders.length){
-    topbar.innerHTML = `<div class="crumb">Arsip Catatan</div><h2>Rak masih kosong</h2>`;
+    topbar.innerHTML = `<div class="crumb">CTT BOS</div><h2>Rak masih kosong</h2>`;
     content.innerHTML = emptyHtml('Belum ada folder mata kuliah', 'Buat folder pertama untuk mulai menyimpan catatan HTML Anda per mata kuliah.', `<button class="btn" onclick="openFolderModal()">＋ Buat folder pertama</button>`);
     return;
   }
