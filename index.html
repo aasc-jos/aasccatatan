@@ -210,23 +210,20 @@ iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
 
 
 <!-- ================= SUPABASE CONFIG ================= -->
-<script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
   /*
-   * ================= PASTE DATA SUPABASE DI SINI =================
-   * Ganti teks di dalam tanda kutip dengan data dari:
-   * Supabase > Project Settings > API
-   */
+   * ================= SUPABASE CONFIG =================
+      */
   const SUPABASE_URL = "https://iryzypmwghfsprprknuk.supabase.co/rest/v1/";
   const SUPABASE_ANON_KEY = "sb_publishable_n-fRWGFx_8Nj7NcTyLcEgw_mUTcCR6n";
 
   window.supabaseConfigured =
     SUPABASE_URL !== "https://iryzypmwghfsprprknuk.supabase.co/rest/v1/" &&
-    SUPABASE_ANON_KEY !== "b_publishable_n-fRWGFx_8Nj7NcTyLcEgw_mUTcCR6n";
+    SUPABASE_ANON_KEY !== "sb_publishable_n-fRWGFx_8Nj7NcTyLcEgw_mUTcCR6n";
 
   window.supabaseClient = window.supabaseConfigured
-    ? createClient(https://iryzypmwghfsprprknuk.supabase.co/rest/v1/, b_publishable_n-fRWGFx_8Nj7NcTyLcEgw_mUTcCR6n)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 </script>
 
