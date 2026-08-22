@@ -280,7 +280,7 @@ function seedState(){
 async function loadState(){
   if(!window.supabaseConfigured || !window.supabaseClient){
     state = seedState();
-    showToast('Masukkan URL dan Anon Key Supabase terlebih dahulu.');
+    showToast('error.');
   } else {
     try{
       const { data: folders, error: folderError } = await window.supabaseClient
