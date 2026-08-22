@@ -208,6 +208,28 @@ iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
 <div id="readerRoot"></div>
 <div class="toast" id="toast"></div>
 
+
+<!-- ================= SUPABASE CONFIG ================= -->
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+  /*
+   * ================= PASTE DATA SUPABASE DI SINI =================
+   * Ganti teks di dalam tanda kutip dengan data dari:
+   * Supabase > Project Settings > API
+   */
+  const SUPABASE_URL = "https://iryzypmwghfsprprknuk.supabase.co/rest/v1/";
+  const SUPABASE_ANON_KEY = "sb_publishable_n-fRWGFx_8Nj7NcTyLcEgw_mUTcCR6n";
+
+  window.supabaseConfigured =
+    SUPABASE_URL !== "PASTE_SUPABASE_URL_HERE" &&
+    SUPABASE_ANON_KEY !== "PASTE_SUPABASE_ANON_KEY_HERE";
+
+  window.supabaseClient = window.supabaseConfigured
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+</script>
+
 <script>
 /* ============== DATA / PALETTE ============== */
 const STORAGE_KEY = 'archive-data';
@@ -741,6 +763,122 @@ document.addEventListener('keydown', (e)=>{
     if(m.innerHTML) closeModal();
   }
 });
+
+
+/* ============== SUPABASE DATABASE ============== */
+async function loadState(){
+  try{
+    if(!window.supabaseConfigured || !window.supabaseClient){
+      state = seedState();
+      showToast('Masukkan Project URL dan Publishable/Anon Key Supabase.');
+    } else {
+      const sb = window.supabaseClient;
+
+      const { data: folders, error: folderError } = await sb
+        .from('folders')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if(folderError) throw folderError;
+
+      const { data: notes, error: noteError } = await sb
+        .from('notes')
+        .select('*')
+        .order('added_at', { ascending: true });
+
+      if(noteError) throw noteError;
+
+      state = {
+        folders: (folders || []).map(f => ({
+          id: f.id,
+          name: f.name,
+          code: f.code,
+          color: f.color || 'teal',
+          notes: (notes || [])
+            .filter(n => n.folder_id === f.id)
+            .map(n => ({
+              id: n.id,
+              title: n.title,
+              code: n.code,
+              html: n.html,
+              addedAt: n.added_at
+            }))
+        }))
+      };
+
+      if(!state.folders.length){
+        state = seedState();
+        await saveState();
+      }
+    }
+  }catch(error){
+    console.error('Supabase load error:', error);
+    state = seedState();
+    showToast('Gagal memuat data Supabase. Periksa tabel dan RLS.');
+  }
+
+  if(state.folders && state.folders.length){
+    selectedFolderId = state.folders[0].id;
+  }
+
+  const loading = document.getElementById('loading');
+  const app = document.getElementById('app');
+  if(loading) loading.style.display = 'none';
+  if(app) app.style.display = '';
+  render();
+}
+
+async function saveState(){
+  try{
+    if(!window.supabaseConfigured || !window.supabaseClient){
+      showToast('Supabase belum dikonfigurasi.');
+      return false;
+    }
+
+    const sb = window.supabaseClient;
+
+    // Simpan folder
+    const folders = state.folders.map(f => ({
+      id: f.id,
+      name: f.name,
+      code: f.code,
+      color: f.color || 'teal'
+    }));
+
+    if(folders.length){
+      const { error: folderError } = await sb
+        .from('folders')
+        .upsert(folders, { onConflict: 'id' });
+      if(folderError) throw folderError;
+    }
+
+    // Simpan catatan HTML
+    const notes = state.folders.flatMap(f =>
+      (f.notes || []).map(n => ({
+        id: n.id,
+        folder_id: f.id,
+        title: n.title,
+        code: n.code,
+        html: n.html,
+        added_at: n.addedAt || new Date().toISOString()
+      }))
+    );
+
+    if(notes.length){
+      const { error: noteError } = await sb
+        .from('notes')
+        .upsert(notes, { onConflict: 'id' });
+      if(noteError) throw noteError;
+    }
+
+    return true;
+  }catch(error){
+    console.error('Supabase save error:', error);
+    showToast('Gagal menyimpan perubahan. Periksa Supabase dan RLS.');
+    return false;
+  }
+}
+
 
 loadState();
 </script>
