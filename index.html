@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catatan Wong Sukses</title>
+<title>Arsip Catatan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -179,23 +179,23 @@ iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
 
 <div id="loading" class="loading">
   <div class="stamp-spin"></div>
-  <div>Membuka rak ctt…</div>
+  <div>Membuka rak arsip…</div>
 </div>
 
 <div class="app" id="app" style="display:none;">
   <aside class="rail">
     <div class="brand">
       <div class="stamp">AC</div>
-      <div class="txt"><b>Catatan Mid-Lengkap</b><span>CTT Wong Sukses · farmasi</span></div>
+      <div class="txt"><b>Arsip Catatan</b><span>rak digital · farmasi</span></div>
     </div>
     <div class="rail-search">
       <span class="ic">⌕</span>
       <input type="text" id="searchInput" placeholder="Cari judul catatan…" oninput="onSearch(this.value)">
     </div>
-    <div class="rail-label"><span>Menu Mata Kuliah</span></div>
+    <div class="rail-label"><span>Laci Mata Kuliah</span></div>
     <ul class="drawers" id="drawerList"></ul>
-    <button class="add-drawer-btn" onclick="openFolderModal()">＋ Folder baru</button>
-    <div class="rail-foot">Doa terbaik untuk collaborators.</div>
+    <button class="add-drawer-btn" onclick="openFolderModal()">＋ Laci baru</button>
+    <div class="rail-foot">Tersimpan privat di akun Claude Anda &mdash; hanya Anda yang bisa melihat arsip ini.</div>
   </aside>
 
   <main>
@@ -276,16 +276,36 @@ function seedState(){
   };
 }
 
-/* ============== STORAGE ============== */
+/* ============== FIREBASE STORAGE ============== */
 async function loadState(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    state = JSON.parse(res.value);
+    await window.firebaseReady;
+
+    const { dataRef, getDoc } = window.firebaseArchive;
+    const snapshot = await getDoc(dataRef);
+
+    if(snapshot.exists() && snapshot.data().state){
+      state = snapshot.data().state;
+    } else {
+      state = seedState();
+      await saveState();
+    }
+
+    if(!state || !Array.isArray(state.folders)){
+      state = seedState();
+      await saveState();
+    }
+
+    if(state.folders.length){
+      selectedFolderId = state.folders[0].id;
+    }
+
   }catch(e){
+    console.error('Gagal memuat data dari Firebase:', e);
     state = seedState();
-    await saveState();
+    showToast('Gagal memuat data dari Firebase. Periksa Firestore Rules dan koneksi.');
   }
-  if(state.folders.length){ selectedFolderId = state.folders[0].id; }
+
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = '';
   render();
@@ -293,11 +313,20 @@ async function loadState(){
 
 async function saveState(){
   try{
-    const res = await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
-    if(!res) throw new Error('empty result');
+    await window.firebaseReady;
+
+    const { dataRef, setDoc } = window.firebaseArchive;
+    await setDoc(dataRef, {
+      state: state,
+      updatedAt: new Date().toISOString()
+    });
+
+    return true;
+
   }catch(e){
-    console.error('Gagal menyimpan', e);
-    showToast('Gagal menyimpan perubahan — coba lagi.');
+    console.error('Gagal menyimpan ke Firebase:', e);
+    showToast('Gagal menyimpan perubahan. Periksa Firestore Rules.');
+    return false;
   }
 }
 
@@ -321,7 +350,7 @@ function onSearch(v){
 function renderRail(){
   const list = document.getElementById('drawerList');
   if(!state.folders.length){
-    list.innerHTML = '<li style="padding:14px 10px;color:var(--rail-faint);font-size:12.5px;">Belum ada folder. Buat folder pertama Anda.</li>';
+    list.innerHTML = '<li style="padding:14px 10px;color:var(--rail-faint);font-size:12.5px;">Belum ada laci. Buat laci pertama Anda.</li>';
     return;
   }
   list.innerHTML = state.folders.map(f=>{
@@ -334,8 +363,8 @@ function renderRail(){
         <span class="d-count">${f.notes.length}</span>
       </button>
       <div class="drawer-tools">
-        <button title="Ubah folder" onclick="event.stopPropagation();openFolderModal('${f.id}')">✎</button>
-        <button title="Hapus folder" onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑</button>
+        <button title="Ubah laci" onclick="event.stopPropagation();openFolderModal('${f.id}')">✎</button>
+        <button title="Hapus laci" onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑</button>
       </div>
     </li>`;
   }).join('');
@@ -362,7 +391,7 @@ function render(){
     topbar.innerHTML = `
       <div class="crumb">Pencarian</div>
       <h2>Hasil untuk “${escapeHtml(searchQuery)}”</h2>
-      <div class="sub">${results.length} catatan ditemukan di semua folder</div>`;
+      <div class="sub">${results.length} catatan ditemukan di semua laci</div>`;
     content.innerHTML = results.length
       ? `<div class="grid">${results.map(r=>cardHtml(r.note, r.folder, true)).join('')}</div>`
       : emptyHtml('Tidak ada yang cocok', 'Coba kata kunci lain, atau periksa ejaan judul catatan.', null);
@@ -370,8 +399,8 @@ function render(){
   }
 
   if(!state.folders.length){
-    topbar.innerHTML = `<div class="crumb">CTT BOS</div><h2>Rak masih kosong</h2>`;
-    content.innerHTML = emptyHtml('Belum ada folder mata kuliah', 'Buat folder pertama untuk mulai menyimpan catatan HTML Anda per mata kuliah.', `<button class="btn" onclick="openFolderModal()">＋ Buat folder pertama</button>`);
+    topbar.innerHTML = `<div class="crumb">Arsip Catatan</div><h2>Rak masih kosong</h2>`;
+    content.innerHTML = emptyHtml('Belum ada laci mata kuliah', 'Buat laci pertama untuk mulai menyimpan catatan HTML Anda per mata kuliah.', `<button class="btn" onclick="openFolderModal()">＋ Buat laci pertama</button>`);
     return;
   }
 
@@ -380,7 +409,7 @@ function render(){
   const c = colorOf(folder.color);
 
   topbar.innerHTML = `
-    <div class="crumb">folder Mata Kuliah <span class="chip" style="background:${c.tint};color:${c.hex}">${escapeHtml(folder.code)}</span></div>
+    <div class="crumb">Laci Mata Kuliah <span class="chip" style="background:${c.tint};color:${c.hex}">${escapeHtml(folder.code)}</span></div>
     <h2>${escapeHtml(folder.name)}</h2>
     <div class="sub">${folder.notes.length} catatan tersimpan</div>`;
 
@@ -427,8 +456,8 @@ function openFolderModal(editId){
   root.innerHTML = `
   <div class="overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
-      <h3>${editing ? 'Ubah folder' : 'folder mata kuliah baru'}</h3>
-      <div class="desc">${editing ? 'Perbarui nama, kode, atau warna folder ini.' : 'Satu folder untuk satu mata kuliah — semua catatan HTML-nya akan tersimpan di sini.'}</div>
+      <h3>${editing ? 'Ubah laci' : 'Laci mata kuliah baru'}</h3>
+      <div class="desc">${editing ? 'Perbarui nama, kode, atau warna laci ini.' : 'Satu laci untuk satu mata kuliah — semua catatan HTML-nya akan tersimpan di sini.'}</div>
       <div class="field">
         <label>Nama mata kuliah</label>
         <input type="text" id="f-name" placeholder="mis. Farmakoterapi Kardiovaskular" value="${editing?escapeHtml(editing.name):''}">
@@ -439,14 +468,14 @@ function openFolderModal(editId){
         <div class="hint">Dipakai sebagai nomor katalog catatan, mis. FKV-001. Kosongkan untuk dibuat otomatis.</div>
       </div>
       <div class="field">
-        <label>Warna folder</label>
+        <label>Warna laci</label>
         <div class="swatches" id="f-swatches">
           ${PALETTE.map(p=>`<button type="button" class="swatch ${p.key===chosenColor?'selected':''}" style="background:${p.hex}" data-color="${p.key}" onclick="pickSwatch('${p.key}')">${p.key===chosenColor?'✓':''}</button>`).join('')}
         </div>
       </div>
       <div class="modal-actions">
         ${editing?`<button class="btn ghost" onclick="closeModal()">Batal</button>`:`<button class="btn ghost" onclick="closeModal()">Batal</button>`}
-        <button class="btn" onclick="submitFolderForm(${editing?`'${editId}'`:'null'})">${editing?'Simpan':'Buat folder'}</button>
+        <button class="btn" onclick="submitFolderForm(${editing?`'${editId}'`:'null'})">${editing?'Simpan':'Buat laci'}</button>
       </div>
     </div>
   </div>`;
@@ -473,12 +502,12 @@ function submitFolderForm(editId){
   if(editId){
     const f = state.folders.find(x=>x.id===editId);
     f.name = name; f.code = code; f.color = color;
-    showToast('folder diperbarui.');
+    showToast('Laci diperbarui.');
   } else {
     const f = { id: uid(), name, code, color, notes: [] };
     state.folders.push(f);
     selectedFolderId = f.id;
-    showToast('folder baru dibuat.');
+    showToast('Laci baru dibuat.');
   }
   closeModal();
   saveState();
@@ -488,13 +517,13 @@ function submitFolderForm(editId){
 function deleteFolder(id){
   const f = state.folders.find(x=>x.id===id);
   if(!f) return;
-  const ok = confirm(`Hapus folder "${f.name}" beserta ${f.notes.length} catatan di dalamnya? Tindakan ini tidak bisa dibatalkan.`);
+  const ok = confirm(`Hapus laci "${f.name}" beserta ${f.notes.length} catatan di dalamnya? Tindakan ini tidak bisa dibatalkan.`);
   if(!ok) return;
   state.folders = state.folders.filter(x=>x.id!==id);
   if(selectedFolderId === id){ selectedFolderId = state.folders.length ? state.folders[0].id : null; }
   saveState();
   render();
-  showToast('folder dihapus.');
+  showToast('Laci dihapus.');
 }
 
 /* ============== MODAL: NOTE (add / edit) ============== */
@@ -508,7 +537,7 @@ function openNoteFormModal(folderId, editId){
   <div class="overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
       <h3>${editing ? 'Ubah catatan' : 'Tambah catatan'}</h3>
-      <div class="desc">folder: <b>${escapeHtml(folder.name)}</b></div>
+      <div class="desc">Laci: <b>${escapeHtml(folder.name)}</b></div>
 
       ${!editing ? `
       <div class="field">
@@ -524,7 +553,7 @@ function openNoteFormModal(folderId, editId){
 
       <div class="field">
         <label>Judul catatan</label>
-        <input type="text" id="n-title" placeholder="mis. Farmakoterapi Mencret" value="${editing?escapeHtml(editing.title):''}">
+        <input type="text" id="n-title" placeholder="mis. Farmakoterapi Diabetes Melitus" value="${editing?escapeHtml(editing.title):''}">
       </div>
       <div class="field">
         <label>Kode katalog</label>
