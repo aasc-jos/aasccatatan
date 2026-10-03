@@ -366,8 +366,9 @@ function mergeBuiltInState(currentState){
     seedFolder.notes.forEach(seedNote => {
       const existing = folder.notes.find(n => n.code === seedNote.code || n.title === seedNote.title);
       if(!existing){ folder.notes.push(seedNote); return; }
-      // Catatan bawaan lama yang belum pernah diedit -> pakai file terpisah (hemat localStorage)
-      if(existing.html && !existing.src && existing.html.length === seedNote.size){
+      // Catatan bawaan selalu dibaca dari file di materi/ (supaya update file langsung terlihat),
+      // kecuali kalau kamu sendiri mengganti isinya lewat tombol Ubah (ditandai edited).
+      if(!existing.edited){
         existing.html = ''; existing.src = seedNote.src; existing.size = seedNote.size;
       }
     });
@@ -377,6 +378,8 @@ function mergeBuiltInState(currentState){
 
 /* ============== STORAGE ============== */
 const STORAGE_VERSION = 2;
+// Naikkan angka ini setiap kali kamu mengganti isi file di folder materi/ (supaya browser tidak memakai cache lama)
+const CONTENT_VERSION = '2';
 
 function normalizeState(raw){
   if(!raw || !Array.isArray(raw.folders)) return null;
@@ -392,7 +395,8 @@ function normalizeState(raw){
       addedAt: n.addedAt || new Date().toISOString(),
       html: typeof n.html === 'string' ? n.html : '',
       src: typeof n.src === 'string' ? n.src : '',
-      size: Number(n.size) || 0
+      size: Number(n.size) || 0,
+      edited: !!n.edited
     })) : []
   }));
   return raw;
@@ -798,7 +802,7 @@ function submitNoteForm(folderId, editId){
     const n = folder.notes.find(x=>x.id===editId);
     n.title = title;
     n.code = codeInput || n.code;
-    if(htmlInput.trim()){ n.html = htmlInput; n.src = ''; n.size = 0; }
+    if(htmlInput.trim()){ n.html = htmlInput; n.src = ''; n.size = 0; n.edited = true; }
     showToast('Catatan diperbarui.');
   } else {
     if(!htmlInput.trim()){ showToast('Tempelkan kode HTML, atau unggah file di atas.'); return; }
@@ -858,7 +862,7 @@ function openReader(folderId, noteId){
   </div>`;
   const frame = document.getElementById('readerFrame');
   if(note.html) frame.srcdoc = note.html;
-  else if(note.src) frame.src = note.src;
+  else if(note.src) frame.src = note.src + '?v=' + CONTENT_VERSION;
   document.addEventListener('keydown', escCloseReader);
 }
 function escCloseReader(e){ if(e.key==='Escape') closeReader(); }
