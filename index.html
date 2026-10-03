@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CTT WONG SUKSES</title>
+<title>CTT WONG SUKSES — GitHub Ready v4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -225,7 +225,7 @@ iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
 
 <script>
 /* ============== DATA / PALETTE ============== */
-const STORAGE_KEY = 'archive-data';
+
 const PALETTE = [
   {key:'teal',   hex:'#0f6d7c', tint:'#e2f2f2'},
   {key:'amber',  hex:'#c1861a', tint:'#faf1de'},
@@ -378,8 +378,11 @@ function mergeBuiltInState(currentState){
   return currentState;
 }
 
-/* ============== STORAGE ============== */
-const STORAGE_VERSION = 2;
+/* ============== STORAGE / GITHUB-SAFE ============== */
+/* v4: always use the newest built-in notes from this HTML file. */
+const STORAGE_KEY = 'ctt-wong-sukses-v4';
+const LEGACY_STORAGE_KEYS = ['archive-data', 'ctt-wong-sukses-v3', 'ctt-wong-sukses-v2'];
+const STORAGE_VERSION = 4;
 
 function normalizeState(raw){
   if(!raw || !Array.isArray(raw.folders)) return null;
@@ -399,25 +402,85 @@ function normalizeState(raw){
   return raw;
 }
 
+function stabilizeBuiltInIds(builtIn){
+  builtIn.folders.forEach(folder => {
+    folder.id = 'builtin-folder-' + folder.code;
+    folder.notes.forEach(note => {
+      note.id = 'builtin-note-' + folder.code + '-' + (note.code || note.title);
+    });
+  });
+  return builtIn;
+}
+
 function readStoredState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return null;
-    return normalizeState(JSON.parse(raw));
-  }catch(e){
-    console.error('Gagal membaca penyimpanan lokal:', e);
-    return null;
+  const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+  for(const key of keys){
+    try{
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      const parsed = normalizeState(JSON.parse(raw));
+      if(parsed) return parsed;
+    }catch(e){
+      console.warn('Data lokal diabaikan:', key, e);
+    }
   }
+  return null;
+}
+
+function migrateState(){
+  const builtIn = stabilizeBuiltInIds(seedState());
+  const stored = readStoredState();
+  if(!stored) return builtIn;
+
+  const builtInCodes = new Set(builtIn.folders.map(f => f.code));
+  const result = { folders: [] };
+
+  // Fresh built-in notes always win, so updated HTML is shown on GitHub.
+  builtIn.folders.forEach(freshFolder => {
+    const oldFolder = stored.folders.find(
+      f => f.code === freshFolder.code || f.name === freshFolder.name
+    );
+    const freshCodes = new Set(freshFolder.notes.map(n => n.code).filter(Boolean));
+    const customNotes = oldFolder
+      ? oldFolder.notes.filter(n => n.code && !freshCodes.has(n.code))
+      : [];
+
+    result.folders.push({
+      ...freshFolder,
+      notes: [...freshFolder.notes, ...customNotes]
+    });
+  });
+
+  // Preserve folders created by the user.
+  stored.folders.forEach(oldFolder => {
+    if(!builtInCodes.has(oldFolder.code)){
+      result.folders.push(oldFolder);
+    }
+  });
+
+  return result;
 }
 
 function loadState(){
-  const stored = readStoredState();
-  state = stored ? mergeBuiltInState(stored) : seedState();
-  if(state.folders.length) selectedFolderId = state.folders[0].id;
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = '';
-  render();
-  saveState();
+  try{
+    state = migrateState();
+    if(state.folders.length) selectedFolderId = state.folders[0].id;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    render();
+    saveState();
+
+    LEGACY_STORAGE_KEYS.forEach(key => {
+      try{ localStorage.removeItem(key); }catch(e){}
+    });
+  }catch(e){
+    console.error('Gagal memuat arsip:', e);
+    state = stabilizeBuiltInIds(seedState());
+    if(state.folders.length) selectedFolderId = state.folders[0].id;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    render();
+  }
 }
 
 function saveState(){
@@ -430,7 +493,7 @@ function saveState(){
     return true;
   }catch(e){
     console.error('Gagal menyimpan ke localStorage:', e);
-    showToast('Penyimpanan penuh. Kurangi ukuran atau jumlah HTML catatan.');
+    showToast('Penyimpanan browser penuh. Catatan yang sudah ada tetap bisa dibuka.');
     return false;
   }
 }
@@ -857,7 +920,9 @@ function openReader(folderId, noteId){
     </div>
     <iframe class="reader-frame" id="readerFrame" sandbox="allow-scripts allow-popups allow-same-origin"></iframe>
   </div>`;
-  document.getElementById('readerFrame').srcdoc = note.html;
+  const frame = document.getElementById('readerFrame');
+  const noteHtml = typeof note.html === 'string' ? note.html.trim() : '';
+  frame.srcdoc = noteHtml || '<!doctype html><html><body style="font-family:Arial;padding:40px"><h2>Catatan tidak memiliki isi HTML.</h2><p>Edit catatan dan tempelkan HTML lengkap.</p></body></html>';
   document.addEventListener('keydown', escCloseReader);
 }
 function escCloseReader(e){ if(e.key==='Escape') closeReader(); }
