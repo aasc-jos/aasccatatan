@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTT WONG SUKSES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef1e8; --paper-deep:#e2e8dc; --card:#fffdf7;
+  --ink:#182420; --ink-soft:#4d5d54; --ink-faint:#889284;
+  --line:#d9ddce; --line-soft:#e6e9de;
+  --rail:#0f1e1a; --rail-soft:#17302a; --rail-line:#233c34; --rail-text:#bcd0c6; --rail-faint:#6f8a7d;
+  --amber:#c1861a; --amber-tint:#faf1de;
+  --teal:#0f6d7c; --teal-tint:#e2f2f2;
+  --coral:#b23b2e; --coral-tint:#f8e4e0;
+  --violet:#6f5299; --violet-tint:#efeaf7;
+  --cyan: #06b6d4; --cyan-tint: #cffafe;
+  --indigo: #6366f1; --indigo-tint: #e0e7ff;
+  --lime: #84cc16; --lime-tint: #ecfccb;
+  --shadow:0 10px 30px rgba(10,20,15,.14);
+  --shadow-sm:0 3px 10px rgba(10,20,15,.08);
+  --radius:16px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-size:15.5px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:'Fraunces',serif;color:var(--ink);margin:0;line-height:1.15;}
+.mono{font-family:'JetBrains Mono',monospace;}
+button{font-family:inherit;cursor:pointer;}
+input,textarea,select{font-family:inherit;}
+::selection{background:var(--amber-tint);}
+
+.app{display:grid;grid-template-columns:272px 1fr;min-height:100vh;}
+
+/* ---------------- RAIL ---------------- */
+.rail{background:var(--rail);color:var(--rail-text);padding:26px 18px 22px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+.rail::-webkit-scrollbar{width:5px;}
+.rail::-webkit-scrollbar-thumb{background:var(--rail-line);border-radius:10px;}
+.brand{display:flex;gap:11px;align-items:center;margin-bottom:22px;padding:0 4px;}
+.brand .stamp{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 32% 28%, #e0a536, var(--amber));display:flex;align-items:center;justify-content:center;flex:none;font-family:'Fraunces',serif;font-weight:700;font-style:italic;color:#2a1a04;font-size:17px;box-shadow:0 3px 8px rgba(0,0,0,.35);}
+.brand .txt b{display:block;color:#fff;font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;}
+.brand .txt span{font-size:11.5px;color:var(--rail-faint);letter-spacing:.02em;}
+
+.rail-search{position:relative;margin-bottom:20px;}
+.rail-search input{width:100%;background:var(--rail-soft);border:1px solid var(--rail-line);color:#eaf1ec;border-radius:10px;padding:9px 12px 9px 32px;font-size:13px;outline:none;}
+.rail-search input::placeholder{color:var(--rail-faint);}
+.rail-search input:focus{border-color:var(--amber);}
+.rail-search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--rail-faint);}
+
+.rail-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--rail-faint);font-weight:700;margin:4px 6px 10px;display:flex;justify-content:space-between;align-items:center;}
+.drawers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;}
+.drawer{position:relative;}
+.drawer button.d-main{width:100%;text-align:left;background:transparent;border:none;color:var(--rail-text);padding:10px 12px 10px 14px;border-radius:10px 4px 4px 10px;display:flex;align-items:center;gap:10px;font-size:13.6px;transition:background .12s;}
+.drawer .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.drawer .d-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drawer .d-count{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--rail-faint);flex:none;}
+.drawer:hover button.d-main{background:var(--rail-soft);}
+.drawer.active button.d-main{background:var(--paper);color:var(--ink);font-weight:600;box-shadow:var(--shadow-sm);}
+.drawer.active .d-count{color:var(--ink-faint);}
+.drawer-tools{position:absolute;right:6px;top:6px;display:none;gap:2px;}
+.drawer:hover .drawer-tools{display:flex;}
+.drawer.active .drawer-tools{display:flex;}
+.drawer-tools button{width:22px;height:22px;border-radius:6px;border:none;background:transparent;color:inherit;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:.7;}
+.drawer.active .drawer-tools button{color:var(--ink-faint);}
+.drawer-tools button:hover{opacity:1;background:rgba(0,0,0,.08);}
+
+.add-drawer-btn{margin-top:12px;width:100%;background:var(--rail-soft);border:1px dashed var(--rail-line);color:var(--rail-text);border-radius:10px;padding:10px;font-size:12.8px;display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .12s, color .12s;}
+.add-drawer-btn:hover{border-color:var(--amber);color:#fff;}
+
+.rail-foot{margin-top:16px;padding:10px 6px 0;border-top:1px solid var(--rail-line);font-size:10.8px;color:var(--rail-faint);line-height:1.5;}
+
+/* ---------------- MAIN ---------------- */
+main{min-width:0;}
+.topbar{position:sticky;top:0;z-index:20;background:linear-gradient(var(--paper) 78%, transparent);padding:34px 44px 18px;}
+.crumb{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.crumb .chip{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:2px 8px;border-radius:5px;letter-spacing:0;}
+.topbar h2{font-size:1.9rem;display:flex;align-items:center;gap:12px;}
+.topbar .sub{color:var(--ink-soft);font-size:13.6px;margin-top:6px;}
+.mobile-toggle{display:none;}
+
+.content{padding:6px 44px 80px;max-width:1450px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:18px;}
+
+.card{background:var(--card);border:1px solid var(--line);border-top:3px dashed var(--line);border-radius:12px;padding:18px 18px 14px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:10px;position:relative;transition:transform .14s, box-shadow .14s;}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+.card .row1{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card .code{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;letter-spacing:.02em;}
+.card .folder-tag{font-size:10.5px;color:var(--ink-faint);}
+.card h3{font-size:1.08rem;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card .meta{font-size:11.6px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;}
+.card .row2{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+.card .open{font-size:13px;font-weight:600;color:var(--teal);text-decoration:none;display:flex;align-items:center;gap:5px;background:none;border:none;padding:0;}
+.card .open:hover{text-decoration:underline;}
+.card-tools{display:flex;gap:2px;opacity:0;transition:opacity .12s;}
+.card:hover .card-tools{opacity:1;}
+.card-tools button{width:24px;height:24px;border-radius:6px;border:none;background:var(--paper-deep);color:var(--ink-soft);font-size:12px;display:flex;align-items:center;justify-content:center;}
+.card-tools button:hover{background:var(--line);}
+
+.add-card{border:1.5px dashed var(--ink-faint);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:132px;background:transparent;color:var(--ink-soft);transition:border-color .12s,color .12s,background .12s;}
+.add-card .plus{font-family:'Fraunces',serif;font-size:26px;font-style:italic;color:var(--ink-faint);}
+.add-card span{font-size:12.6px;font-weight:600;}
+.add-card:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-tint);}
+.add-card:hover .plus{color:var(--teal);}
+
+.empty{padding:70px 10px;text-align:center;max-width:420px;margin:0 auto;}
+.empty .plus{font-family:'Fraunces',serif;font-style:italic;font-size:42px;color:var(--line);margin-bottom:6px;}
+.empty h3{font-size:1.3rem;margin-bottom:8px;}
+.empty p{color:var(--ink-soft);font-size:14px;margin-bottom:18px;}
+.btn{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13.6px;font-weight:600;}
+.btn:hover{background:#000;}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+.btn.ghost:hover{background:var(--paper-deep);}
+.btn.danger{background:var(--coral);}
+.btn.danger:hover{background:#8f2d22;}
+
+/* ---------------- MODALS ---------------- */
+.overlay{position:fixed;inset:0;background:rgba(15,24,20,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{background:var(--card);border-radius:18px;max-width:460px;width:100%;padding:26px 26px 22px;box-shadow:var(--shadow);max-height:88vh;overflow-y:auto;animation:pop .16s ease;}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+.modal h3{font-size:1.3rem;margin-bottom:4px;}
+.modal .desc{color:var(--ink-soft);font-size:13px;margin-bottom:18px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.field input[type=text],.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;outline:none;background:var(--paper);color:var(--ink);}
+.field input[type=text]:focus,.field textarea:focus{border-color:var(--teal);}
+.field textarea{min-height:110px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;}
+.field .hint{font-size:11px;color:var(--ink-faint);margin-top:5px;}
+.swatches{display:flex;gap:9px;}
+.swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;}
+.swatch.selected{border-color:var(--ink);}
+.filedrop{border:1.5px dashed var(--line);border-radius:10px;padding:16px;text-align:center;font-size:12.6px;color:var(--ink-soft);position:relative;background:var(--paper);}
+.filedrop:hover{border-color:var(--teal);}
+.filedrop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.filedrop b{color:var(--teal);}
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--ink-faint);font-size:11px;text-transform:uppercase;letter-spacing:.08em;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+/* reader */
+.reader{position:fixed;inset:0;background:var(--paper);z-index:300;display:flex;flex-direction:column;animation:fadeIn .12s ease;}
+.reader-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--card);border-top:4px solid var(--teal);flex-wrap:wrap;}
+.reader-head .left{display:flex;align-items:center;gap:12px;min-width:0;}
+.reader-head .code{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;flex:none;}
+.reader-head h4{font-size:15.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reader-head .actions{display:flex;gap:6px;flex:none;}
+.reader-head button{background:var(--paper-deep);border:none;border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:5px;}
+.reader-head button:hover{background:var(--line);}
+.reader-head button.close{background:var(--ink);color:#fff;}
+.reader-head button.close:hover{background:#000;}
+iframe.reader-frame{flex:1;width:100%;border:0;background:#fff;}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);z-index:400;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--ink-soft);}
+.loading .stamp-spin{width:40px;height:40px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--teal);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+
+/* ---------------- HOMEPAGE ---------------- */
+.home-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:30px;min-height:330px;margin-bottom:26px;padding:42px 46px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(135deg,#fffdf7 0%,#f5f7ef 55%,#eaf3ee 100%);box-shadow:var(--shadow-sm)}
+.home-hero::before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;right:-90px;top:-150px;background:radial-gradient(circle,rgba(15,109,124,.16),transparent 68%);pointer-events:none}
+.home-hero::after{content:"";position:absolute;width:250px;height:250px;border-radius:50%;left:-140px;bottom:-160px;background:radial-gradient(circle,rgba(193,134,26,.14),transparent 70%);pointer-events:none}
+.hero-copy{position:relative;z-index:2;max-width:650px;display:flex;flex-direction:column;justify-content:center}.eyebrow,.section-kicker{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}.eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:14px}.spark{color:var(--amber);font-size:16px}.home-hero h1{font-size:clamp(2.35rem,4vw,4rem);letter-spacing:-.035em}.home-hero h1 em{color:var(--teal);font-style:normal}.home-hero p{max-width:600px;color:var(--ink-soft);font-size:15px;margin:16px 0 0}.hero-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:24px}.hero-btn{border-radius:11px;padding:11px 16px;font-size:13px;font-weight:700;border:1px solid var(--line);transition:.15s}.hero-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}.hero-btn.primary:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}.hero-btn.secondary{background:rgba(255,255,255,.65);color:var(--ink)}.hero-btn.secondary:hover{background:#fff;border-color:var(--teal);color:var(--teal)}
+.hero-orbit{position:relative;min-height:250px;display:grid;place-items:center}.hero-stamp{width:124px;height:124px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#e4ad45,var(--amber));color:#2b1c04;font:italic 700 44px 'Fraunces',serif;box-shadow:0 16px 45px rgba(193,134,26,.22),inset 0 0 0 10px rgba(255,255,255,.16);transform:rotate(-7deg);z-index:2}.orbit{position:absolute;border:1px dashed rgba(15,109,124,.28);border-radius:50%}.orbit-1{width:215px;height:215px;transform:rotate(22deg)}.orbit-2{width:155px;height:240px;transform:rotate(-38deg)}.float-chip{position:absolute;padding:7px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-sm);font:700 10px 'JetBrains Mono',monospace;color:var(--ink-soft);z-index:3}.chip-a{top:24px;right:18px;color:var(--teal)}.chip-b{bottom:28px;left:15px;color:var(--violet)}.chip-c{bottom:8px;right:12px;color:var(--amber)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:42px}.stat-card{min-height:92px;border:1px solid var(--line);border-radius:16px;background:rgba(255,253,247,.82);display:flex;align-items:center;gap:13px;padding:16px 17px;box-shadow:var(--shadow-sm);border-left:4px solid var(--accent)}.stat-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--tint);color:var(--accent);font-weight:800}.stat-card strong{display:block;font:700 22px 'Fraunces',serif}.stat-card small{display:block;color:var(--ink-faint);font-size:11px;margin-top:2px}.stat-teal{--accent:var(--teal);--tint:var(--teal-tint)}.stat-amber{--accent:var(--amber);--tint:var(--amber-tint)}.stat-violet{--accent:var(--violet);--tint:var(--violet-tint)}.stat-cyan{--accent:var(--cyan);--tint:var(--cyan-tint)}
+.home-section{margin-bottom:44px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:16px}.section-head h2{font-size:1.7rem;margin-top:4px}.section-note{color:var(--ink-faint);font-size:11px;font-family:'JetBrains Mono',monospace}.text-btn{background:none;border:none;color:var(--teal);font-weight:700;font-size:12.5px;padding:5px}.text-btn:hover{text-decoration:underline}.folder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.home-folder{position:relative;display:flex;align-items:center;gap:12px;text-align:left;padding:15px;background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow-sm);transition:.16s;min-width:0}.home-folder:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--folder-accent)}.folder-mark{width:42px;height:42px;flex:none;border-radius:12px;background:var(--folder-tint);color:var(--folder-accent);display:grid;place-items:center;font:700 10px 'JetBrains Mono',monospace}.folder-main{min-width:0;flex:1}.folder-main strong{display:block;font:600 16px 'Fraunces',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.folder-main small{display:block;color:var(--ink-faint);font-size:11px;margin-top:3px}.folder-arrow{font-size:18px;color:var(--folder-accent);opacity:.55}.home-folder:hover .folder-arrow{opacity:1;transform:translate(2px,-2px)}
+.recent-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);box-shadow:var(--shadow-sm)}.recent-item{display:flex;align-items:center;gap:14px;padding:13px 15px;border-bottom:1px solid var(--line-soft)}.recent-item:last-child{border-bottom:0}.recent-code{font:700 10px 'JetBrains Mono',monospace;padding:6px 8px;border-radius:7px;min-width:70px;text-align:center}.recent-main{min-width:0;flex:1}.recent-main strong{display:block;font:600 15px 'Fraunces',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.recent-main small{display:block;color:var(--ink-faint);font-size:10.5px;margin-top:2px}.recent-item button{border:none;background:none;color:var(--teal);font-size:12px;font-weight:700;padding:7px}.recent-item button:hover{text-decoration:underline}.recent-item button span{font-size:16px}.home-quote{position:relative;padding:24px 28px 22px 48px;margin-top:10px;border-radius:18px;background:var(--rail);color:var(--rail-text);overflow:hidden}.home-quote>span{position:absolute;left:18px;top:10px;font:700 48px 'Fraunces',serif;color:var(--amber)}.home-quote p{margin:0;max-width:720px;font:500 15px/1.6 'Fraunces',serif;color:#dbe8e0}.home-quote b{display:block;margin-top:8px;font-size:10px;color:var(--rail-faint);font-family:'JetBrains Mono',monospace}.home-nav{width:100%;border:1px solid transparent;background:transparent;color:var(--rail-text);padding:9px 12px;border-radius:10px;text-align:left;font-size:13.5px;font-weight:700;margin-bottom:12px;transition:.12s}.home-nav:hover{background:var(--rail-soft);color:#fff}.home-nav.active{background:var(--paper);color:var(--ink);box-shadow:var(--shadow-sm)}
+@media(max-width:800px){
+  .app{grid-template-columns:1fr;}
+  .rail{position:sticky;top:0;height:auto;flex-direction:row;align-items:center;padding:12px 14px;gap:10px;overflow-x:auto;z-index:50;}
+  .brand{margin-bottom:0;flex:none;}
+  .brand .txt{display:none;}
+  .rail-search{display:none;}
+  .rail-label{display:none;}
+  .drawers{flex-direction:row;flex:none;overflow:visible;}
+  .drawer button.d-main{border-radius:20px;padding:8px 12px;white-space:nowrap;}
+  .drawer-tools{display:none !important;}
+  .add-drawer-btn{width:auto;white-space:nowrap;margin-top:0;flex:none;}
+  .rail-foot{display:none;}
+  .home-hero{grid-template-columns:1fr;padding:30px 24px;min-height:0}.hero-orbit{min-height:210px}.home-hero h1{font-size:2.25rem}.stats-row{grid-template-columns:repeat(2,1fr)}.folder-grid{grid-template-columns:1fr}.recent-item{gap:9px}.recent-code{min-width:62px}.home-nav{width:auto;margin:0;padding:8px 12px;white-space:nowrap}
+  .topbar{padding:20px 18px 10px;}
+  .content{padding:6px 18px 60px;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">
+  <div class="stamp-spin"></div>
+  <div>Membuka FOLDER…</div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <aside class="rail">
+    <div class="brand">
+      <div class="stamp">AC</div>
+      <div class="txt"><b>CTT WONG SUKSES</b><span>Maaf masih banyak kurangnya</span></div>
+    </div>
+    <div class="rail-search">
+      <span class="ic">⌕</span>
+      <input type="text" id="searchInput" placeholder="Cari judul catatan…" oninput="onSearch(this.value)">
+    </div>
+    <button class="home-nav" id="homeNav" onclick="goHome()">⌂ <span>Beranda</span></button>
+    <div class="rail-label"><span>folder Mata Kuliah</span></div>
+    <ul class="drawers" id="drawerList"></ul>
+    <button class="add-drawer-btn" onclick="openFolderModal()">＋ folder baru</button>
+    <div class="rail-foot">ctt by kak claude &mdash; not for everyone use :p.</div>
+  </aside>
+
+  <main>
+    <div class="topbar" id="topbar"></div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="readerRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============== DATA / PALETTE ============== */
+const STORAGE_KEY = 'archive-data';
+const PALETTE = [
+  {key:'teal',   hex:'#0f6d7c', tint:'#e2f2f2'},
+  {key:'amber',  hex:'#c1861a', tint:'#faf1de'},
+  {key:'coral',  hex:'#b23b2e', tint:'#f8e4e0'},
+  {key:'violet', hex:'#6f5299', tint:'#efeaf7'},
+  {key:'cyan', hex:'#06b6d4', tint:'#cffafe'},
+  {key:'indigo', hex:'#6366f1', tint:'#e0e7ff'},
+  {key:'lime', hex:'#84cc16', tint:'#ecfccb'},
+  {key:'pink', hex:'#ec4899', tint:'#fce7f3'},
+];
+function colorOf(key){ return PALETTE.find(p=>p.key===key) || PALETTE[0]; }
+
+let state = { folders: [] };
+let selectedFolderId = null;
+let viewMode = 'home';
+let searchQuery = '';
+let pendingPasteHtml = '';
+
+function uid(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function escapeHtml(str){
+  return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function fmtDate(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+  }catch(e){ return ''; }
+}
+
+function deriveCode(name){
+  const words = (name||'').trim().split(/\s+/).filter(Boolean);
+  let code = words.map(w=>w[0]).join('').toUpperCase().slice(0,4);
+  if(!code) code = 'MK';
+  return code;
+}
+
+function nextNoteSeq(folder){
+  let max = 0;
+  folder.notes.forEach(n=>{
+    const m = /(\d+)\s*$/.exec(n.code||'');
+    if(m) max = Math.max(max, parseInt(m[1],10));
+  });
+  return max + 1;
+}
+
+/* ============== SEED (data awal dari 2 file yang diunggah) ============== */
+function seedState(){
+  const now = new Date().toISOString();
+  return {
+    folders: [
+      {
+        id: uid(), name: 'Farmakoterapi Infeksi', code: 'FTI', color: 'teal',
+        notes: [
+          { id: uid(), title: 'Pendahuluan Infeksi', code: 'FTI-001', addedAt: now, src: 'materi/FTI-001.html', size: 52346 },
+          { id: uid(), title: 'Infeksi Saluran Cerna & Intra Abdomen', code: 'FTI-002', addedAt: now, src: 'materi/FTI-002.html', size: 81684 },
+          { id: uid(), title: 'Sexually Transmitted Diseases (STD)', code: 'FTI-003', addedAt: now, src: 'materi/FTI-003.html', size: 53984 },
+          { id: uid(), title: 'HIV/AIDS', code: 'FTI-004', addedAt: now, src: 'materi/FTI-004.html', size: 47095 },
+          { id: uid(), title: 'Otitis Media Akut (OMA)', code: 'FTI-005', addedAt: now, src: 'materi/FTI-005.html', size: 57221 },
+          { id: uid(), title: 'Tuberkulosis', code: 'FTI-006', addedAt: now, src: 'materi/FTI-006.html', size: 89707 },
+          { id: uid(), title: 'Infeksi Saluran Kemih (ISK)', code: 'FTI-008', addedAt: now, src: 'materi/FTI-008.html', size: 46885 },
+          { id: uid(), title: 'Pneumonia & Bronkitis', code: 'FTI-009', addedAt: now, src: 'materi/FTI-009.html', size: 75300 },
+          { id: uid(), title: 'Infeksi Cacing dkk.', code: 'FTI-010', addedAt: now, src: 'materi/FTI-010.html', size: 60779 },
+          { id: uid(), title: 'Cheat Sheet GACOR', code: 'FTI-000', addedAt: now, src: 'materi/FTI-000.html', size: 47852 },
+        ]
+      },
+      {
+        id: uid(), name: 'Prak. Farklin', code: 'PFK', color: 'pink',
+        notes: [
+          { id: uid(), title: 'Swamedikasi — Mual Muntah, Diare, Konstipasi, Dispepsia', code: 'PFK-001', addedAt: now, src: 'materi/PFK-001.html', size: 38542 },
+          { id: uid(), title: 'Swamedikasi THT — Sariawan, Faringitis, Common Cold', code: 'PFK-002', addedAt: now, src: 'materi/PFK-002.html', size: 68669 },
+          { id: uid(), title: 'Swamedikasi — Penyakit Kulit', code: 'PFK-003', addedAt: now, src: 'materi/PFK-003.html', size: 90419 }
+        ]
+      },
+      {
+        id: uid(), name: 'Farmakoterapi Gangguan Endokrin', code: 'FTE', color: 'teal',
+        notes: [
+          { id: uid(), title: 'Diabetes Mellitus', code: 'FTE-001', addedAt: now, src: 'materi/FTE-001.html', size: 82546 },        
+          { id: uid(), title: 'Gangguan Tiroid', code: 'FTE-002', addedAt: now, src: 'materi/FTE-002.html', size: 42754 },
+        ]
+      },
+      {
+        id: uid(), name: 'PBL LIVER', code: 'PBL', color: 'coral',
+        notes: [
+          { id: uid(), title: 'Sirosis Hati & Komplikasinya', code: 'FTL-001', addedAt: now, src: 'materi/FTL-001.html', size: 51630 },
+          { id: uid(), title: 'Viral Hepatitis', code: 'FTL-002', addedAt: now, src: 'materi/FTL-002.html', size: 71870 }, 
+        ]
+      },
+      {
+       id: uid(), name: 'FARTER NiPO', code: 'FTN', color: 'cyan',
+        notes: [ 
+          { id: uid(), title: 'Psoriasis, Skabies & Kutil', code: 'FTN-001', addedAt: now, src: 'materi/FTN-001.html', size: 27952 },
+          { id: uid(), title: 'Luka Bakar, Luka Iris & Serangga', code: 'FTN-002', addedAt: now, src: 'materi/FTN-002.html', size: 63874 },
+          { id: uid(), title: 'Farmakoterapi Kanker', code: 'FTN-003', addedAt: now, src: 'materi/FTN-003.html', size: 55271 },
+          { id: uid(), title: 'Kanker Paru', code: 'FTN-004', addedAt: now, src: 'materi/FTN-004.html', size: 26347 },
+          { id: uid(), title: 'Dermatitis Atopik & Hiperpigmentasi', code: 'FTN-005', addedAt: now, src: 'materi/FTN-005.html', size: 29118 },
+          { id: uid(), title: 'Tinitus, Ketombe & Hair Loss', code: 'FTN-006', addedAt: now, src: 'materi/FTN-006.html', size: 29649 },
+        ]
+      },
+      {
+       id: uid(), name: 'FITOTER', code: 'FIT', color: 'lime',
+        notes: [ 
+          { id: uid(), title: 'Fitoterapi (Pengantar)', code: 'FIT-001', addedAt: now, src: 'materi/FIT-001.html', size: 22464 },
+          { id: uid(), title: 'Farmakovigilans Obat Herbal', code: 'FIT-002', addedAt: now, src: 'materi/FIT-002.html', size: 42186 },
+          { id: uid(), title: 'Fitoterapi untuk Gangguan Pernafasan', code: 'FIT-003', addedAt: now, src: 'materi/FIT-003.html', size: 44882 },
+          { id: uid(), title: 'Fitoterapi Antiinfeksi & Antiinflamasi', code: 'FIT-004', addedAt: now, src: 'materi/FIT-004.html', size: 21758 }
+         ]
+      },
+      {
+       id: uid(), name: 'FARKLIN', code: 'FAR', color: 'pink',
+        notes: [ 
+          { id: uid(), title: 'Pelayanan Farmasi Klinik & DRP', code: 'FAR-001', addedAt: now, src: 'materi/FAR-001.html', size: 45662 },
+          { id: uid(), title: 'Rekonsiliasi & PTO', code: 'FAR-002', addedAt: now, src: 'materi/FAR-002.html', size: 21708 },
+          { id: uid(), title: 'Evaluasi Penggunaan Obat (EPO)', code: 'FAR-003', addedAt: now, src: 'materi/FAR-003.html', size: 25324 },
+          { id: uid(), title: 'Compounding & Dispensing Sediaan Steril', code: 'FAR-004', addedAt: now, src: 'materi/FAR-004.html', size: 22857 },
+          { id: uid(), title: 'Penggunaan Obat pada Ibu Hamil dan Menyusui', code: 'FAR-005', addedAt: now, src: 'materi/FAR-005.html', size: 47907 },
+          { id: uid(), title: 'Obat Off Label & Emergency', code: 'FAR-006', addedAt: now, src: 'materi/FAR-006.html', size: 30265 },
+        ]
+      }
+    ]
+  };
+}
+
+
+
+function mergeBuiltInState(currentState){
+  const builtIn = seedState();
+  if(!currentState || !Array.isArray(currentState.folders)) return builtIn;
+
+  builtIn.folders.forEach(seedFolder => {
+    let folder = currentState.folders.find(f => f.code === seedFolder.code || f.name === seedFolder.name);
+    if(!folder){
+      currentState.folders.push(seedFolder);
+      return;
+    }
+    if(!Array.isArray(folder.notes)) folder.notes = [];
+    seedFolder.notes.forEach(seedNote => {
+      const existing = folder.notes.find(n => n.code === seedNote.code || n.title === seedNote.title);
+      if(!existing){ folder.notes.push(seedNote); return; }
+      // Catatan bawaan lama yang belum pernah diedit -> pakai file terpisah (hemat localStorage)
+      if(existing.html && !existing.src && existing.html.length === seedNote.size){
+        existing.html = ''; existing.src = seedNote.src; existing.size = seedNote.size;
+      }
+    });
+  });
+  return currentState;
+}
+
+/* ============== STORAGE ============== */
+const STORAGE_VERSION = 2;
+
+function normalizeState(raw){
+  if(!raw || !Array.isArray(raw.folders)) return null;
+  raw.folders = raw.folders.map(f => ({
+    id: f.id || uid(),
+    name: f.name || 'Tanpa nama',
+    code: f.code || deriveCode(f.name || ''),
+    color: colorOf(f.color).key,
+    notes: Array.isArray(f.notes) ? f.notes.map(n => ({
+      id: n.id || uid(),
+      title: n.title || 'Catatan tanpa judul',
+      code: n.code || '',
+      addedAt: n.addedAt || new Date().toISOString(),
+      html: typeof n.html === 'string' ? n.html : '',
+      src: typeof n.src === 'string' ? n.src : '',
+      size: Number(n.size) || 0
+    })) : []
+  }));
+  return raw;
+}
+
+function readStoredState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return normalizeState(JSON.parse(raw));
+  }catch(e){
+    console.error('Gagal membaca penyimpanan lokal:', e);
+    return null;
+  }
+}
+
+function loadState(){
+  const stored = readStoredState();
+  state = stored ? mergeBuiltInState(stored) : seedState();
+  if(state.folders.length) selectedFolderId = state.folders[0].id;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  render();
+  saveState();
+}
+
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: STORAGE_VERSION,
+      savedAt: new Date().toISOString(),
+      folders: state.folders
+    }));
+    return true;
+  }catch(e){
+    console.error('Gagal menyimpan ke localStorage:', e);
+    showToast('Penyimpanan penuh. Kurangi ukuran atau jumlah HTML catatan.');
+    return false;
+  }
+}
+
+/* ============== TOAST ============== */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* ============== SEARCH ============== */
+function onSearch(v){
+  searchQuery = v.trim().toLowerCase();
+  render();
+}
+
+/* ============== RENDER: RAIL ============== */
+function renderRail(){
+  const list = document.getElementById('drawerList');
+  if(!state.folders.length){
+    list.innerHTML = '<li style="padding:14px 10px;color:var(--rail-faint);font-size:12.5px;">Belum ada folder. Buat folder pertama Anda.</li>';
+    return;
+  }
+  const homeNav = document.getElementById('homeNav');
+  if(homeNav) homeNav.classList.toggle('active', viewMode === 'home' && !searchQuery);
+  list.innerHTML = state.folders.map(f=>{
+    const c = colorOf(f.color);
+    const active = f.id === selectedFolderId && !searchQuery && viewMode === 'folder';
+    return `<li class="drawer ${active?'active':''}">
+      <button class="d-main" onclick="selectFolder('${f.id}')">
+        <span class="dot" style="background:${c.hex}"></span>
+        <span class="d-name">${escapeHtml(f.name)}</span>
+        <span class="d-count">${f.notes.length}</span>
+      </button>
+      <div class="drawer-tools">
+        <button title="Ubah folder" onclick="event.stopPropagation();openFolderModal('${f.id}')">✎</button>
+        <button title="Hapus folder" onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑</button>
+      </div>
+    </li>`;
+  }).join('');
+}
+
+function goHome(){
+  viewMode = 'home';
+  searchQuery = '';
+  const input = document.getElementById('searchInput');
+  if(input) input.value = '';
+  render();
+}
+
+function selectFolder(id){
+  selectedFolderId = id;
+  viewMode = 'folder';
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  render();
+}
+
+function renderHome(){
+  const allNotes = state.folders.flatMap(f => f.notes.map(n => ({...n, folder:f})));
+  const recent = [...allNotes].sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt)).slice(0,6);
+  const totalFolders = state.folders.length;
+  const totalNotes = allNotes.length;
+  const totalTopics = new Set(allNotes.map(n=>n.title.trim().toLowerCase()).filter(Boolean)).size;
+  const totalChars = allNotes.reduce((sum,n)=>sum+(n.html||'').length || n.size || 0,0);
+  const firstFolderId = selectedFolderId || state.folders[0].id;
+
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('topbar').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <section class="home-hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="spark">✦</span> CTT WONG SUKSES</div>
+        <h1>Anjay belajar,<br><em>kumpulan wong suksess.</em></h1>
+        <p>Arsip ytta.</p>
+        <div class="hero-actions">
+          <button class="hero-btn primary" onclick="focusSearch()">⌕ Cari catatan</button>
+          <button class="hero-btn secondary" onclick="openNoteFormModal('${firstFolderId}')">＋ Tambah catatan</button>
+        </div>
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <div class="orbit orbit-1"></div><div class="orbit orbit-2"></div>
+        <div class="hero-stamp">O_o</div>
+        <span class="float-chip chip-a">${totalNotes} notes</span>
+        <span class="float-chip chip-b">${totalFolders} folders</span>
+        <span class="float-chip chip-c">✦ study archive</span>
+      </div>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card stat-teal"><span class="stat-icon">◈</span><div><strong>${totalFolders}</strong><small>Mata kuliah</small></div></div>
+      <div class="stat-card stat-amber"><span class="stat-icon">✦</span><div><strong>${totalNotes}</strong><small>Total catatan</small></div></div>
+      <div class="stat-card stat-violet"><span class="stat-icon">◇</span><div><strong>${totalTopics}</strong><small>Topik tersimpan</small></div></div>
+      <div class="stat-card stat-cyan"><span class="stat-icon">↗</span><div><strong>${formatBytes(totalChars)}</strong><small>Arsip HTML</small></div></div>
+    </section>
+
+    <section class="home-section">
+      <div class="section-head"><div><span class="section-kicker">COLLECTION</span><h2>Mata kuliah</h2></div><button class="text-btn" onclick="openFolderModal()">＋ Folder baru</button></div>
+      <div class="folder-grid">${state.folders.map((f,i)=>homeFolderCard(f,i)).join('')}</div>
+    </section>
+
+    <section class="home-section recent-section">
+      <div class="section-head"><div><span class="section-kicker">RECENTLY ADDED</span><h2>Catatan terbaru</h2></div><span class="section-note">${recent.length ? '6 terakhir' : 'Belum ada catatan'}</span></div>
+      <div class="recent-list">${recent.length ? recent.map(r=>recentNoteHtml(r)).join('') : emptyHtml('Belum ada catatan','Tambahkan HTML pertama kamu untuk mulai membangun arsip.')}</div>
+    </section>
+
+    <section class="home-quote"><span>“</span><p>اِنَّ مَعَ الْعُسْرِ يُسْرًاۙ فَاِنَّ مَعَ الْعُسْرِ يُسْرًاۙ.</p><b>— Al-Insyirah: 5-6</b></section>`;
+}
+
+function homeFolderCard(folder, index){
+  const c = colorOf(folder.color);
+  const initials = escapeHtml((folder.code||'MK').slice(0,3));
+  return `<button class="home-folder" onclick="selectFolder('${folder.id}')" style="--folder-accent:${c.hex};--folder-tint:${c.tint}">
+    <span class="folder-mark">${initials}</span>
+    <span class="folder-main"><strong>${escapeHtml(folder.name)}</strong><small>${folder.notes.length} catatan</small></span>
+    <span class="folder-arrow">↗</span>
+  </button>`;
+}
+
+function recentNoteHtml(item){
+  const c = colorOf(item.folder.color);
+  return `<div class="recent-item">
+    <span class="recent-code" style="background:${c.tint};color:${c.hex}">${escapeHtml(item.code||'NOTE')}</span>
+    <div class="recent-main"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.folder.name)} · ${fmtDate(item.addedAt)}</small></div>
+    <button onclick="openReader('${item.folder.id}','${item.id}')">Buka <span>→</span></button>
+  </div>`;
+}
+
+function focusSearch(){
+  const input = document.getElementById('searchInput');
+  if(input){ input.focus(); input.select(); }
+}
+
+function formatBytes(bytes){
+  if(bytes < 1024) return `${bytes} B`;
+  if(bytes < 1024*1024) return `${(bytes/1024).toFixed(1)} KB`;
+  return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+}
+
+/* ============== RENDER: MAIN ============== */
+function render(){
+  renderRail();
+  document.getElementById('topbar').style.display = '';
+  const topbar = document.getElementById('topbar');
+  const content = document.getElementById('content');
+
+  if(searchQuery){
+    const results = [];
+    state.folders.forEach(f=> f.notes.forEach(n=>{
+      if(n.title.toLowerCase().includes(searchQuery) || (n.code||'').toLowerCase().includes(searchQuery) || f.name.toLowerCase().includes(searchQuery)) results.push({note:n, folder:f});
+    }));
+    topbar.innerHTML = `<div class="crumb">Pencarian</div><h2>Hasil untuk “${escapeHtml(searchQuery)}”</h2><div class="sub">${results.length} catatan ditemukan di semua folder</div>`;
+    content.innerHTML = results.length ? `<div class="grid">${results.map(r=>cardHtml(r.note,r.folder,true)).join('')}</div>` : emptyHtml('Tidak ada yang cocok','Coba kata kunci lain, kode catatan, atau nama mata kuliah.',null);
+    return;
+  }
+
+  if(!state.folders.length){
+    viewMode='home';
+    topbar.innerHTML=`<div class="crumb">CTT WONG SUKSES</div><h2>Belum ada mata kuliah</h2>`;
+    content.innerHTML=emptyHtml('Mulai arsip kamu','Buat folder pertama untuk mulai menyimpan catatan HTML per mata kuliah.',`<button class="btn" onclick="openFolderModal()">＋ Buat folder pertama</button>`);
+    return;
+  }
+
+  if(viewMode==='home'){
+    renderHome();
+    return;
+  }
+
+  const folder=state.folders.find(f=>f.id===selectedFolderId)||state.folders[0];
+  selectedFolderId=folder.id;
+  const c=colorOf(folder.color);
+  topbar.innerHTML=`<div class="crumb">folder Mata Kuliah <span class="chip" style="background:${c.tint};color:${c.hex}">${escapeHtml(folder.code)}</span></div><h2>${escapeHtml(folder.name)}</h2><div class="sub">${folder.notes.length} catatan tersimpan</div>`;
+  const cards=folder.notes.map(n=>cardHtml(n,folder,false)).join('');
+  const addCard=`<button class="add-card" onclick="openNoteFormModal('${folder.id}')"><span class="plus">＋</span><span>Tambah catatan</span></button>`;
+  content.innerHTML=`<div class="grid">${cards}${addCard}</div>`;
+}
+
+function cardHtml(note, folder, showFolderTag){
+  const c = colorOf(folder.color);
+  return `<div class="card">
+    <div class="row1">
+      <span class="code" style="background:${c.tint};color:${c.hex}">${escapeHtml(note.code||'')}</span>
+      <div class="card-tools">
+        <button title="Ubah" onclick="openNoteFormModal('${folder.id}','${note.id}')">✎</button>
+        <button title="Unduh" onclick="downloadNote('${folder.id}','${note.id}')">⭳</button>
+        <button title="Hapus" onclick="deleteNote('${folder.id}','${note.id}')">🗑</button>
+      </div>
+    </div>
+    <h3>${escapeHtml(note.title)}</h3>
+    <div class="meta">${showFolderTag ? escapeHtml(folder.name)+' · ' : ''}${fmtDate(note.addedAt)}</div>
+    <div class="row2">
+      <button class="open" onclick="openReader('${folder.id}','${note.id}')">Buka catatan →</button>
+    </div>
+  </div>`;
+}
+
+function emptyHtml(title, desc, ctaHtml){
+  return `<div class="empty">
+    <div class="plus">＋</div>
+    <h3>${escapeHtml(title)}</h3>
+    <p>${escapeHtml(desc)}</p>
+    ${ctaHtml||''}
+  </div>`;
+}
+
+/* ============== MODAL: FOLDER ============== */
+function openFolderModal(editId){
+  const editing = editId ? state.folders.find(f=>f.id===editId) : null;
+  const chosenColor = editing ? editing.color : PALETTE[state.folders.length % PALETTE.length].key;
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${editing ? 'Ubah folder' : 'folder mata kuliah baru'}</h3>
+      <div class="desc">${editing ? 'Perbarui nama, kode, atau warna folder ini.' : 'Satu folder untuk satu mata kuliah — semua catatan HTML-nya akan tersimpan di sini.'}</div>
+      <div class="field">
+        <label>Nama mata kuliah</label>
+        <input type="text" id="f-name" placeholder="mis. Farmakoterapi Kardiovaskular" value="${editing?escapeHtml(editing.name):''}">
+      </div>
+      <div class="field">
+        <label>Kode singkat</label>
+        <input type="text" id="f-code" placeholder="mis. FKV" maxlength="6" value="${editing?escapeHtml(editing.code):''}">
+        <div class="hint">Dipakai sebagai nomor katalog catatan, mis. FKV-001. Kosongkan untuk dibuat otomatis.</div>
+      </div>
+      <div class="field">
+        <label>Warna folder</label>
+        <div class="swatches" id="f-swatches">
+          ${PALETTE.map(p=>`<button type="button" class="swatch ${p.key===chosenColor?'selected':''}" style="background:${p.hex}" data-color="${p.key}" onclick="pickSwatch('${p.key}')">${p.key===chosenColor?'✓':''}</button>`).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        ${editing?`<button class="btn ghost" onclick="closeModal()">Batal</button>`:`<button class="btn ghost" onclick="closeModal()">Batal</button>`}
+        <button class="btn" onclick="submitFolderForm(${editing?`'${editId}'`:'null'})">${editing?'Simpan':'Buat folder'}</button>
+      </div>
+    </div>
+  </div>`;
+  root.dataset.color = chosenColor;
+  setTimeout(()=>document.getElementById('f-name').focus(), 30);
+}
+
+function pickSwatch(key){
+  document.getElementById('modalRoot').dataset.color = key;
+  document.querySelectorAll('#f-swatches .swatch').forEach(s=>{
+    const on = s.dataset.color === key;
+    s.classList.toggle('selected', on);
+    s.textContent = on ? '✓' : '';
+  });
+}
+
+function submitFolderForm(editId){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ showToast('Nama mata kuliah wajib diisi.'); return; }
+  let code = document.getElementById('f-code').value.trim().toUpperCase();
+  if(!code) code = deriveCode(name);
+  const color = document.getElementById('modalRoot').dataset.color || 'teal';
+
+  if(editId){
+    const f = state.folders.find(x=>x.id===editId);
+    f.name = name; f.code = code; f.color = color;
+    showToast('folder diperbarui.');
+  } else {
+    const f = { id: uid(), name, code, color, notes: [] };
+    state.folders.push(f);
+    selectedFolderId = f.id;
+    showToast('folder baru dibuat.');
+  }
+  closeModal();
+  saveState();
+  render();
+}
+
+function deleteFolder(id){
+  const f = state.folders.find(x=>x.id===id);
+  if(!f) return;
+  const ok = confirm(`Hapus folder "${f.name}" beserta ${f.notes.length} catatan di dalamnya? Tindakan ini tidak bisa dibatalkan.`);
+  if(!ok) return;
+  state.folders = state.folders.filter(x=>x.id!==id);
+  if(selectedFolderId === id){ selectedFolderId = state.folders.length ? state.folders[0].id : null; }
+  saveState();
+  render();
+  showToast('folder dihapus.');
+}
+
+/* ============== MODAL: NOTE (add / edit) ============== */
+function openNoteFormModal(folderId, editId){
+  const folder = state.folders.find(f=>f.id===folderId);
+  if(!folder) return;
+  const editing = editId ? folder.notes.find(n=>n.id===editId) : null;
+  pendingPasteHtml = editing ? editing.html : '';
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${editing ? 'Ubah catatan' : 'Tambah catatan'}</h3>
+      <div class="desc">folder: <b>${escapeHtml(folder.name)}</b></div>
+
+      ${!editing ? `
+      <div class="field">
+        <label>Unggah file HTML (boleh pilih beberapa sekaligus)</label>
+        <div class="filedrop">
+          <input type="file" id="n-files" accept=".html,.htm,text/html" multiple onchange="handleBulkUpload('${folderId}', this.files)">
+          <span><b>Pilih file</b> atau seret ke sini — .html / .htm</span>
+        </div>
+        <div class="hint">Setiap file langsung ditambahkan sebagai satu kartu catatan, judul diambil dari nama file.</div>
+      </div>
+      <div class="divider">atau tempel kode</div>
+      ` : ''}
+
+      <div class="field">
+        <label>Judul catatan</label>
+        <input type="text" id="n-title" placeholder="mis. Farmakoterapi Diabetes Melitus" value="${editing?escapeHtml(editing.title):''}">
+      </div>
+      <div class="field">
+        <label>Kode katalog</label>
+        <input type="text" id="n-code" placeholder="otomatis" value="${editing?escapeHtml(editing.code):''}">
+      </div>
+      <div class="field">
+        <label>${editing ? 'Ganti isi HTML (kosongkan jika tidak berubah)' : 'Tempel kode HTML lengkap'}</label>
+        <textarea id="n-html" placeholder="<!DOCTYPE html> ..."></textarea>
+        <div class="hint">Tempelkan seluruh isi file .html catatan Anda di sini.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Batal</button>
+        <button class="btn" onclick="submitNoteForm('${folderId}', ${editing?`'${editId}'`:'null'})">${editing?'Simpan':'Tambah dari tempelan'}</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('n-title').focus(), 30);
+}
+
+async function handleBulkUpload(folderId, fileList){
+  const folder = state.folders.find(f=>f.id===folderId);
+  if(!folder || !fileList || !fileList.length) return;
+  let added = 0;
+  for(const file of Array.from(fileList)){
+    try{
+      const text = await file.text();
+      const title = file.name.replace(/\.(html?|htm)$/i,'').replace(/[_-]+/g,' ').trim() || 'Catatan tanpa judul';
+      const seq = nextNoteSeq(folder);
+      folder.notes.push({ id: uid(), title, code: `${folder.code}-${String(seq).padStart(3,'0')}`, addedAt: new Date().toISOString(), html: text });
+      added++;
+    }catch(e){ console.error(e); }
+  }
+  if(added){
+    await saveState();
+    closeModal();
+    render();
+    showToast(added===1 ? '1 catatan ditambahkan.' : `${added} catatan ditambahkan.`);
+  }
+}
+
+function submitNoteForm(folderId, editId){
+  const folder = state.folders.find(f=>f.id===folderId);
+  if(!folder) return;
+  const title = document.getElementById('n-title').value.trim();
+  const codeInput = document.getElementById('n-code').value.trim().toUpperCase();
+  const htmlInput = document.getElementById('n-html').value;
+
+  if(!title){ showToast('Judul catatan wajib diisi.'); return; }
+
+  if(editId){
+    const n = folder.notes.find(x=>x.id===editId);
+    n.title = title;
+    n.code = codeInput || n.code;
+    if(htmlInput.trim()){ n.html = htmlInput; n.src = ''; n.size = 0; }
+    showToast('Catatan diperbarui.');
+  } else {
+    if(!htmlInput.trim()){ showToast('Tempelkan kode HTML, atau unggah file di atas.'); return; }
+    const seq = nextNoteSeq(folder);
+    folder.notes.push({
+      id: uid(), title,
+      code: codeInput || `${folder.code}-${String(seq).padStart(3,'0')}`,
+      addedAt: new Date().toISOString(),
+      html: htmlInput
+    });
+    showToast('Catatan ditambahkan.');
+  }
+  closeModal();
+  saveState();
+  render();
+}
+
+function deleteNote(folderId, noteId){
+  const folder = state.folders.find(f=>f.id===folderId);
+  if(!folder) return;
+  const n = folder.notes.find(x=>x.id===noteId);
+  if(!n) return;
+  const ok = confirm(`Hapus catatan "${n.title}"?`);
+  if(!ok) return;
+  folder.notes = folder.notes.filter(x=>x.id!==noteId);
+  saveState();
+  render();
+  showToast('Catatan dihapus.');
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+/* ============== READER ============== */
+function openReader(folderId, noteId){
+  const folder = state.folders.find(f=>f.id===folderId);
+  if(!folder) return;
+  const note = folder.notes.find(n=>n.id===noteId);
+  if(!note) return;
+  const c = colorOf(folder.color);
+  const root = document.getElementById('readerRoot');
+  root.innerHTML = `
+  <div class="reader" style="border-top-color:${c.hex}">
+    <div class="reader-head" style="border-top-color:${c.hex}">
+      <div class="left">
+        <span class="code" style="background:${c.tint};color:${c.hex}">${escapeHtml(note.code||'')}</span>
+        <h4>${escapeHtml(note.title)}</h4>
+      </div>
+      <div class="actions">
+        <button onclick="closeReader();openNoteFormModal('${folder.id}','${note.id}')">✎ Ubah</button>
+        <button onclick="downloadNote('${folder.id}','${note.id}')">⭳ Unduh</button>
+        <button class="close" onclick="closeReader()">✕ Tutup</button>
+      </div>
+    </div>
+    <iframe class="reader-frame" id="readerFrame" sandbox="allow-scripts allow-popups allow-same-origin"></iframe>
+  </div>`;
+  const frame = document.getElementById('readerFrame');
+  if(note.html) frame.srcdoc = note.html;
+  else if(note.src) frame.src = note.src;
+  document.addEventListener('keydown', escCloseReader);
+}
+function escCloseReader(e){ if(e.key==='Escape') closeReader(); }
+function closeReader(){
+  document.getElementById('readerRoot').innerHTML = '';
+  document.removeEventListener('keydown', escCloseReader);
+}
+
+function downloadNote(folderId, noteId){
+  const folder = state.folders.find(f=>f.id===folderId);
+  const note = folder && folder.notes.find(n=>n.id===noteId);
+  if(!note) return;
+  const fname = (note.title||'catatan').replace(/[^a-z0-9\u00C0-\u024F]+/gi,'_') + '.html';
+  const a = document.createElement('a');
+  let url = null;
+  if(note.html){
+    url = URL.createObjectURL(new Blob([note.html], {type:'text/html'}));
+    a.href = url;
+  } else if(note.src){
+    a.href = note.src;
+  } else return;
+  a.download = fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  if(url) setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ============== GLOBAL ESC FOR MODAL ============== */
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){
+    const m = document.getElementById('modalRoot');
+    if(m.innerHTML) closeModal();
+  }
+});
+
+loadState();
+</script>
+</body>
+</html>
