@@ -381,11 +381,13 @@ function mergeBuiltInState(currentState){
   return currentState;
 }
 
-/* ============== STORAGE / GITHUB-SAFE ============== */
-/* v4: always use the newest built-in notes from this HTML file. */
-const STORAGE_KEY = 'ctt-wong-sukses-v4';
-const LEGACY_STORAGE_KEYS = ['archive-data', 'ctt-wong-sukses-v3', 'ctt-wong-sukses-v2'];
-const STORAGE_VERSION = 4;
+/* ============== STORAGE / CLOUD ============== */
+/* Built-in notes live in this HTML file; everything visitors add is stored in
+   the cloud (Netlify Database) so everyone sees the same archive. */
+const OWNER_KEY = 'ctt-wong-sukses-owner';
+const LEGACY_OFFERED_KEY = 'ctt-wong-sukses-legacy-offered';
+const LEGACY_STORAGE_KEYS = ['ctt-wong-sukses-v4', 'archive-data', 'ctt-wong-sukses-v3', 'ctt-wong-sukses-v2'];
+let builtInFolders = [];
 
 function normalizeState(raw){
   if(!raw || !Array.isArray(raw.folders)) return null;
@@ -408,16 +410,17 @@ function normalizeState(raw){
 function stabilizeBuiltInIds(builtIn){
   builtIn.folders.forEach(folder => {
     folder.id = 'builtin-folder-' + folder.code;
+    folder.builtin = true;
     folder.notes.forEach(note => {
       note.id = 'builtin-note-' + folder.code + '-' + (note.code || note.title);
+      note.builtin = true;
     });
   });
   return builtIn;
 }
 
 function readStoredState(){
-  const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
-  for(const key of keys){
+  for(const key of LEGACY_STORAGE_KEYS){
     try{
       const raw = localStorage.getItem(key);
       if(!raw) continue;
@@ -430,76 +433,107 @@ function readStoredState(){
   return null;
 }
 
-function migrateState(){
-  const builtIn = stabilizeBuiltInIds(seedState());
+function ownerToken(){
+  let token = null;
+  try{ token = localStorage.getItem(OWNER_KEY); }catch(e){}
+  if(!token){
+    token = (crypto.randomUUID ? crypto.randomUUID() : uid() + uid()) + '-' + Date.now().toString(36);
+    try{ localStorage.setItem(OWNER_KEY, token); }catch(e){}
+  }
+  return token;
+}
+
+async function api(path, options = {}){
+  const res = await fetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', 'X-Owner-Token': ownerToken(), ...(options.headers || {}) }
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data.error || 'Gagal terhubung ke cloud.');
+  return data;
+}
+
+function cloudNote(n){
+  return { id: n.id, title: n.title, code: n.code || '', addedAt: n.addedAt, size: n.size || 0, mine: !!n.mine, cloud: true, html: null };
+}
+
+function buildState(library){
+  const folderList = builtInFolders.map(f => ({ ...f, notes: [...f.notes] }));
+  library.folders.forEach(f => folderList.push({ id: f.id, name: f.name, code: f.code, color: colorOf(f.color).key, mine: !!f.mine, cloud: true, notes: [] }));
+  library.notes.forEach(n => {
+    const folder = folderList.find(f => f.id === n.folderId);
+    if(folder) folder.notes.push(cloudNote(n));
+  });
+  state = { folders: folderList };
+  if(!state.folders.some(f => f.id === selectedFolderId)) selectedFolderId = state.folders.length ? state.folders[0].id : null;
+}
+
+async function refreshLibrary(){
+  buildState(await api('/api/library'));
+  render();
+}
+
+async function loadState(){
+  builtInFolders = stabilizeBuiltInIds(seedState()).folders;
+  let library = { folders: [], notes: [] };
+  try{
+    library = await api('/api/library');
+  }catch(e){
+    console.error('Gagal memuat cloud:', e);
+    setTimeout(() => showToast('Catatan cloud gagal dimuat. Coba muat ulang halaman.'), 50);
+  }
+  buildState(library);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  render();
+  offerLegacyUpload();
+}
+
+/* Notes added before cloud storage existed only live in this browser. */
+async function offerLegacyUpload(){
+  try{ if(localStorage.getItem(LEGACY_OFFERED_KEY)) return; }catch(e){ return; }
   const stored = readStoredState();
-  if(!stored) return builtIn;
-
-  const builtInCodes = new Set(builtIn.folders.map(f => f.code));
-  const result = { folders: [] };
-
-  // Fresh built-in notes always win, so updated HTML is shown on GitHub.
-  builtIn.folders.forEach(freshFolder => {
-    const oldFolder = stored.folders.find(
-      f => f.code === freshFolder.code || f.name === freshFolder.name
-    );
-    const freshCodes = new Set(freshFolder.notes.map(n => n.code).filter(Boolean));
-    const customNotes = oldFolder
-      ? oldFolder.notes.filter(n => n.code && !freshCodes.has(n.code))
-      : [];
-
-    result.folders.push({
-      ...freshFolder,
-      notes: [...freshFolder.notes, ...customNotes]
-    });
-  });
-
-  // Preserve folders created by the user.
+  if(!stored) return;
+  const builtInCodes = new Set(builtInFolders.map(f => f.code));
+  const uploads = [];
   stored.folders.forEach(oldFolder => {
-    if(!builtInCodes.has(oldFolder.code)){
-      result.folders.push(oldFolder);
-    }
+    const builtIn = builtInFolders.find(f => f.code === oldFolder.code || f.name === oldFolder.name);
+    const known = new Set(builtIn ? builtIn.notes.map(n => n.code).filter(Boolean) : []);
+    const custom = oldFolder.notes.filter(n => n.html.trim() && !(builtIn && (known.has(n.code) || builtIn.notes.some(b => b.title === n.title))));
+    if(builtIn ? custom.length : !builtInCodes.has(oldFolder.code)) uploads.push({ folder: oldFolder, builtIn, notes: custom });
   });
-
-  return result;
-}
-
-function loadState(){
+  const total = uploads.reduce((sum, u) => sum + u.notes.length, 0);
+  try{ localStorage.setItem(LEGACY_OFFERED_KEY, '1'); }catch(e){}
+  if(!uploads.length) return;
+  if(!confirm(`Ada ${total} catatan yang hanya tersimpan di browser ini. Unggah ke cloud supaya bisa dilihat semua orang?`)) return;
   try{
-    state = migrateState();
-    if(state.folders.length) selectedFolderId = state.folders[0].id;
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    render();
-    saveState();
-
-    LEGACY_STORAGE_KEYS.forEach(key => {
-      try{ localStorage.removeItem(key); }catch(e){}
-    });
+    for(const u of uploads){
+      let folderId = u.builtIn && u.builtIn.id;
+      if(!folderId){
+        const created = await api('/api/folders', { method: 'POST', body: JSON.stringify({ name: u.folder.name, code: u.folder.code, color: u.folder.color }) });
+        folderId = created.id;
+      }
+      for(const n of u.notes){
+        await api('/api/notes', { method: 'POST', body: JSON.stringify({ folderId, title: n.title, code: n.code, html: n.html }) });
+      }
+    }
+    LEGACY_STORAGE_KEYS.forEach(key => { try{ localStorage.removeItem(key); }catch(e){} });
+    await refreshLibrary();
+    showToast('Catatan lokal berhasil diunggah ke cloud.');
   }catch(e){
-    console.error('Gagal memuat arsip:', e);
-    state = stabilizeBuiltInIds(seedState());
-    if(state.folders.length) selectedFolderId = state.folders[0].id;
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    render();
+    console.error(e);
+    showToast(e.message);
   }
 }
 
-function saveState(){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      version: STORAGE_VERSION,
-      savedAt: new Date().toISOString(),
-      folders: state.folders
-    }));
-    return true;
-  }catch(e){
-    console.error('Gagal menyimpan ke localStorage:', e);
-    showToast('Penyimpanan browser penuh. Catatan yang sudah ada tetap bisa dibuka.');
-    return false;
-  }
+async function ensureHtml(note){
+  if(typeof note.html === 'string') return note.html;
+  const data = await api('/api/notes/' + encodeURIComponent(note.id));
+  note.html = data.html || '';
+  return note.html;
 }
+
+function noteSize(n){ return typeof n.html === 'string' ? n.html.length : (n.size || 0); }
 
 /* ============== TOAST ============== */
 let toastTimer = null;
@@ -535,10 +569,10 @@ function renderRail(){
         <span class="d-name">${escapeHtml(f.name)}</span>
         <span class="d-count">${f.notes.length}</span>
       </button>
-      <div class="drawer-tools">
+      ${f.mine ? `<div class="drawer-tools">
         <button title="Ubah folder" onclick="event.stopPropagation();openFolderModal('${f.id}')">✎</button>
         <button title="Hapus folder" onclick="event.stopPropagation();deleteFolder('${f.id}')">🗑</button>
-      </div>
+      </div>` : ''}
     </li>`;
   }).join('');
 }
@@ -565,7 +599,7 @@ function renderHome(){
   const totalFolders = state.folders.length;
   const totalNotes = allNotes.length;
   const totalTopics = new Set(allNotes.map(n=>n.title.trim().toLowerCase()).filter(Boolean)).size;
-  const totalChars = allNotes.reduce((sum,n)=>sum+(n.html||'').length,0);
+  const totalChars = allNotes.reduce((sum,n)=>sum+noteSize(n),0);
   const firstFolderId = selectedFolderId || state.folders[0].id;
 
   document.getElementById('topbar').style.display = 'none';
@@ -684,13 +718,13 @@ function cardHtml(note, folder, showFolderTag){
     <div class="row1">
       <span class="code" style="background:${c.tint};color:${c.hex}">${escapeHtml(note.code||'')}</span>
       <div class="card-tools">
-        <button title="Ubah" onclick="openNoteFormModal('${folder.id}','${note.id}')">✎</button>
+        ${note.mine ? `<button title="Ubah" onclick="openNoteFormModal('${folder.id}','${note.id}')">✎</button>` : ''}
         <button title="Unduh" onclick="downloadNote('${folder.id}','${note.id}')">⭳</button>
-        <button title="Hapus" onclick="deleteNote('${folder.id}','${note.id}')">🗑</button>
+        ${note.mine ? `<button title="Hapus" onclick="deleteNote('${folder.id}','${note.id}')">🗑</button>` : ''}
       </div>
     </div>
     <h3>${escapeHtml(note.title)}</h3>
-    <div class="meta">${showFolderTag ? escapeHtml(folder.name)+' · ' : ''}${fmtDate(note.addedAt)}</div>
+    <div class="meta">${showFolderTag ? escapeHtml(folder.name)+' · ' : ''}${fmtDate(note.addedAt)}${note.cloud ? (note.mine ? ' · ☁ unggahanmu' : ' · ☁ cloud') : ''}</div>
     <div class="row2">
       <button class="open" onclick="openReader('${folder.id}','${note.id}')">Buka catatan →</button>
     </div>
@@ -750,38 +784,39 @@ function pickSwatch(key){
   });
 }
 
-function submitFolderForm(editId){
+async function submitFolderForm(editId){
   const name = document.getElementById('f-name').value.trim();
   if(!name){ showToast('Nama mata kuliah wajib diisi.'); return; }
   let code = document.getElementById('f-code').value.trim().toUpperCase();
   if(!code) code = deriveCode(name);
   const color = document.getElementById('modalRoot').dataset.color || 'teal';
+  const body = JSON.stringify({ name, code, color });
 
-  if(editId){
-    const f = state.folders.find(x=>x.id===editId);
-    f.name = name; f.code = code; f.color = color;
-    showToast('folder diperbarui.');
-  } else {
-    const f = { id: uid(), name, code, color, notes: [] };
-    state.folders.push(f);
-    selectedFolderId = f.id;
-    showToast('folder baru dibuat.');
-  }
-  closeModal();
-  saveState();
-  render();
+  try{
+    if(editId){
+      await api('/api/folders/' + encodeURIComponent(editId), { method: 'PATCH', body });
+      showToast('folder diperbarui.');
+    } else {
+      const f = await api('/api/folders', { method: 'POST', body });
+      selectedFolderId = f.id;
+      viewMode = 'folder';
+      showToast('folder baru dibuat.');
+    }
+    closeModal();
+    await refreshLibrary();
+  }catch(e){ showToast(e.message); }
 }
 
-function deleteFolder(id){
+async function deleteFolder(id){
   const f = state.folders.find(x=>x.id===id);
   if(!f) return;
   const ok = confirm(`Hapus folder "${f.name}" beserta ${f.notes.length} catatan di dalamnya? Tindakan ini tidak bisa dibatalkan.`);
   if(!ok) return;
-  state.folders = state.folders.filter(x=>x.id!==id);
-  if(selectedFolderId === id){ selectedFolderId = state.folders.length ? state.folders[0].id : null; }
-  saveState();
-  render();
-  showToast('folder dihapus.');
+  try{
+    await api('/api/folders/' + encodeURIComponent(id), { method: 'DELETE' });
+    await refreshLibrary();
+    showToast('folder dihapus.');
+  }catch(e){ showToast(e.message); }
 }
 
 /* ============== MODAL: NOTE (add / edit) ============== */
@@ -789,13 +824,14 @@ function openNoteFormModal(folderId, editId){
   const folder = state.folders.find(f=>f.id===folderId);
   if(!folder) return;
   const editing = editId ? folder.notes.find(n=>n.id===editId) : null;
-  pendingPasteHtml = editing ? editing.html : '';
+  if(editing && !editing.mine) return;
+  pendingPasteHtml = '';
   const root = document.getElementById('modalRoot');
   root.innerHTML = `
   <div class="overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
       <h3>${editing ? 'Ubah catatan' : 'Tambah catatan'}</h3>
-      <div class="desc">folder: <b>${escapeHtml(folder.name)}</b></div>
+      <div class="desc">folder: <b>${escapeHtml(folder.name)}</b>${editing ? '' : ' · catatan langsung tersimpan di cloud dan bisa dibuka semua orang.'}</div>
 
       ${!editing ? `
       <div class="field">
@@ -835,24 +871,26 @@ async function handleBulkUpload(folderId, fileList){
   const folder = state.folders.find(f=>f.id===folderId);
   if(!folder || !fileList || !fileList.length) return;
   let added = 0;
+  let seq = nextNoteSeq(folder);
+  showToast('Mengunggah ke cloud…');
   for(const file of Array.from(fileList)){
     try{
-      const text = await file.text();
+      const html = await file.text();
       const title = file.name.replace(/\.(html?|htm)$/i,'').replace(/[_-]+/g,' ').trim() || 'Catatan tanpa judul';
-      const seq = nextNoteSeq(folder);
-      folder.notes.push({ id: uid(), title, code: `${folder.code}-${String(seq).padStart(3,'0')}`, addedAt: new Date().toISOString(), html: text });
+      const code = `${folder.code}-${String(seq).padStart(3,'0')}`;
+      await api('/api/notes', { method: 'POST', body: JSON.stringify({ folderId, title, code, html }) });
+      seq++;
       added++;
-    }catch(e){ console.error(e); }
+    }catch(e){ console.error(e); showToast(`${file.name}: ${e.message}`); }
   }
   if(added){
-    await saveState();
     closeModal();
-    render();
-    showToast(added===1 ? '1 catatan ditambahkan.' : `${added} catatan ditambahkan.`);
+    await refreshLibrary().catch(e => showToast(e.message));
+    showToast(added===1 ? '1 catatan ditambahkan ke cloud.' : `${added} catatan ditambahkan ke cloud.`);
   }
 }
 
-function submitNoteForm(folderId, editId){
+async function submitNoteForm(folderId, editId){
   const folder = state.folders.find(f=>f.id===folderId);
   if(!folder) return;
   const title = document.getElementById('n-title').value.trim();
@@ -861,39 +899,40 @@ function submitNoteForm(folderId, editId){
 
   if(!title){ showToast('Judul catatan wajib diisi.'); return; }
 
-  if(editId){
-    const n = folder.notes.find(x=>x.id===editId);
-    n.title = title;
-    n.code = codeInput || n.code;
-    if(htmlInput.trim()) n.html = htmlInput;
-    showToast('Catatan diperbarui.');
-  } else {
-    if(!htmlInput.trim()){ showToast('Tempelkan kode HTML, atau unggah file di atas.'); return; }
-    const seq = nextNoteSeq(folder);
-    folder.notes.push({
-      id: uid(), title,
-      code: codeInput || `${folder.code}-${String(seq).padStart(3,'0')}`,
-      addedAt: new Date().toISOString(),
-      html: htmlInput
-    });
-    showToast('Catatan ditambahkan.');
-  }
-  closeModal();
-  saveState();
-  render();
+  try{
+    if(editId){
+      const n = folder.notes.find(x=>x.id===editId);
+      const changes = { title, code: codeInput || n.code };
+      if(htmlInput.trim()) changes.html = htmlInput;
+      await api('/api/notes/' + encodeURIComponent(editId), { method: 'PATCH', body: JSON.stringify(changes) });
+      showToast('Catatan diperbarui.');
+    } else {
+      if(!htmlInput.trim()){ showToast('Tempelkan kode HTML, atau unggah file di atas.'); return; }
+      const seq = nextNoteSeq(folder);
+      await api('/api/notes', { method: 'POST', body: JSON.stringify({
+        folderId, title,
+        code: codeInput || `${folder.code}-${String(seq).padStart(3,'0')}`,
+        html: htmlInput
+      }) });
+      showToast('Catatan ditambahkan ke cloud.');
+    }
+    closeModal();
+    await refreshLibrary();
+  }catch(e){ showToast(e.message); }
 }
 
-function deleteNote(folderId, noteId){
+async function deleteNote(folderId, noteId){
   const folder = state.folders.find(f=>f.id===folderId);
   if(!folder) return;
   const n = folder.notes.find(x=>x.id===noteId);
   if(!n) return;
   const ok = confirm(`Hapus catatan "${n.title}"?`);
   if(!ok) return;
-  folder.notes = folder.notes.filter(x=>x.id!==noteId);
-  saveState();
-  render();
-  showToast('Catatan dihapus.');
+  try{
+    await api('/api/notes/' + encodeURIComponent(noteId), { method: 'DELETE' });
+    await refreshLibrary();
+    showToast('Catatan dihapus.');
+  }catch(e){ showToast(e.message); }
 }
 
 function closeModal(){
@@ -901,7 +940,7 @@ function closeModal(){
 }
 
 /* ============== READER ============== */
-function openReader(folderId, noteId){
+async function openReader(folderId, noteId){
   const folder = state.folders.find(f=>f.id===folderId);
   if(!folder) return;
   const note = folder.notes.find(n=>n.id===noteId);
@@ -916,17 +955,21 @@ function openReader(folderId, noteId){
         <h4>${escapeHtml(note.title)}</h4>
       </div>
       <div class="actions">
-        <button onclick="closeReader();openNoteFormModal('${folder.id}','${note.id}')">✎ Ubah</button>
+        ${note.mine ? `<button onclick="closeReader();openNoteFormModal('${folder.id}','${note.id}')">✎ Ubah</button>` : ''}
         <button onclick="downloadNote('${folder.id}','${note.id}')">⭳ Unduh</button>
         <button class="close" onclick="closeReader()">✕ Tutup</button>
       </div>
     </div>
-    <iframe class="reader-frame" id="readerFrame" sandbox="allow-scripts allow-popups allow-same-origin"></iframe>
+    <iframe class="reader-frame" id="readerFrame" sandbox="${note.cloud ? 'allow-scripts allow-popups allow-forms allow-modals' : 'allow-scripts allow-popups allow-same-origin'}"></iframe>
   </div>`;
   const frame = document.getElementById('readerFrame');
-  const noteHtml = typeof note.html === 'string' ? note.html.trim() : '';
-  frame.srcdoc = noteHtml || '<!doctype html><html><body style="font-family:Arial;padding:40px"><h2>Catatan tidak memiliki isi HTML.</h2><p>Edit catatan dan tempelkan HTML lengkap.</p></body></html>';
   document.addEventListener('keydown', escCloseReader);
+  frame.srcdoc = '<!doctype html><html><body style="font-family:Arial;padding:40px;color:#4d5d54">Memuat catatan…</body></html>';
+  let noteHtml = '';
+  try{ noteHtml = (await ensureHtml(note)).trim(); }
+  catch(e){ showToast(e.message); }
+  if(document.getElementById('readerFrame') !== frame) return;
+  frame.srcdoc = noteHtml || '<!doctype html><html><body style="font-family:Arial;padding:40px"><h2>Catatan tidak memiliki isi HTML.</h2><p>Edit catatan dan tempelkan HTML lengkap.</p></body></html>';
 }
 function escCloseReader(e){ if(e.key==='Escape') closeReader(); }
 function closeReader(){
@@ -934,11 +977,13 @@ function closeReader(){
   document.removeEventListener('keydown', escCloseReader);
 }
 
-function downloadNote(folderId, noteId){
+async function downloadNote(folderId, noteId){
   const folder = state.folders.find(f=>f.id===folderId);
   const note = folder && folder.notes.find(n=>n.id===noteId);
   if(!note) return;
-  const blob = new Blob([note.html], {type:'text/html'});
+  let html;
+  try{ html = await ensureHtml(note); }catch(e){ showToast(e.message); return; }
+  const blob = new Blob([html], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
