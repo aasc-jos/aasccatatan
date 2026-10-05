@@ -603,7 +603,7 @@ function renderHome(){
     </section>
 
     <section class="home-section recent-section">
-      <div class="section-head"><div><span class="section-kicker">RECENTLY ADDED</span><h2>Catatan terbaru (terlama)</h2></div><span class="section-note">${recent.length ? '6 terakhir' : 'Belum ada catatan'}</span></div>
+      <div class="section-head"><div><span class="section-kicker">RECENTLY ADDED</span><h2>Catatan lama</h2></div><span class="section-note">${recent.length ? '6 terakhir' : 'Belum ada catatan'}</span></div>
       <div class="recent-list">${recent.length ? recent.map(r=>recentNoteHtml(r)).join('') : emptyHtml('Belum ada catatan','Tambahkan HTML pertama kamu untuk mulai membangun arsip.')}</div>
     </section>
 
